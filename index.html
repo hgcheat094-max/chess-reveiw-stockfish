@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Review Studio | Stockfish 3400+ Engine & Arrow Analysis</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chessboard.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#161512] text-slate-100 min-h-screen flex flex-col font-sans select-none antialiased">
+
+  <!-- Header Navigation -->
+  <header class="border-b border-[#2b2926] bg-[#21201d]/90 backdrop-blur sticky top-0 z-30 px-4 py-2.5">
+    <div class="max-w-[1440px] mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-green-700 flex items-center justify-center shadow-lg shadow-emerald-700/30">
+          <i class="fa-solid fa-chess-knight text-white text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base sm:text-lg leading-tight tracking-wide text-white">Chess Review Studio</h1>
+            <span class="bg-[#302e2b] text-emerald-400 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-500/25">
+              Stockfish 3400+ ELO
+            </span>
+          </div>
+          <p class="text-[11px] text-[#989795]">Chess.com Game Review & Real-Time Engine Arrow Analysis</p>
+        </div>
+      </div>
+      
+      <!-- Top Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button id="openChessComModalBtn" class="flex items-center gap-1.5 bg-[#81b64c] hover:bg-[#96c95d] text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition shadow-md active:scale-95">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+          <span>Chess.com Games</span>
+        </button>
+        <button id="openPgnModalBtn" class="flex items-center gap-1.5 bg-[#2b2926] hover:bg-[#363430] text-slate-200 px-3 py-1.5 rounded-lg font-medium text-xs border border-slate-700/50 transition active:scale-95">
+          <i class="fa-solid fa-file-import"></i>
+          <span>PGN</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Analysis Progress Indicator -->
+  <div id="analysisProgressBarContainer" class="w-full bg-[#1b1a17] h-1 hidden">
+    <div id="analysisProgressBar" class="h-full bg-emerald-500 transition-all duration-150" style="width: 0%;"></div>
+  </div>
+
+  <!-- Main Analysis Workspace -->
+  <main class="max-w-[1440px] mx-auto w-full p-2 sm:p-4 flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-5">
+
+    <!-- Left / Center Section: Chess Board & Navigation Controls -->
+    <section class="flex flex-col items-center flex-1 max-w-[580px] w-full">
+      
+      <!-- Top Player Bar (Black) -->
+      <div id="topPlayerCard" class="w-full bg-[#262421] border border-[#363430] rounded-t-xl px-3.5 py-2 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-[#302e2b] border border-slate-700 flex items-center justify-center font-bold text-slate-300">
+            <i class="fa-solid fa-chess-king text-slate-400 text-sm"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 id="topPlayerName" class="font-bold text-xs sm:text-sm text-slate-200 truncate max-w-[140px] sm:max-w-xs">Black Player</h3>
+              <span id="topPlayerRating" class="text-[11px] text-[#989795] font-mono">(1500)</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="topPlayerEstRating" class="text-[11px] font-mono font-bold text-amber-300 bg-amber-950/40 border border-amber-800/50 px-2 py-0.5 rounded">Perf: -- ELO</span>
+          <span id="topPlayerAccuracy" class="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded">Acc: --%</span>
+        </div>
+      </div>
+
+      <!-- Board & Eval Bar Area -->
+      <div class="flex items-stretch justify-center w-full bg-[#1b1a17] p-2 border-x border-[#363430] shadow-xl">
+        
+        <!-- Vertical Smooth Eval Bar -->
+        <div class="relative w-5 sm:w-6 bg-[#302e2b] rounded overflow-hidden flex flex-col justify-between border border-slate-700/80 mr-2 shadow-inner">
+          <div id="evalBlackBar" class="w-full bg-[#21201d] transition-all duration-300 ease-out relative flex items-start justify-center pt-1" style="height: 50%;">
+            <span id="evalBlackText" class="text-[9px] font-mono font-bold text-slate-400">0.0</span>
+          </div>
+          <div id="evalWhiteBar" class="w-full bg-[#f8f9fa] transition-all duration-300 ease-out relative flex items-end justify-center pb-1" style="height: 50%;">
+            <span id="evalWhiteText" class="text-[9px] font-mono font-bold text-slate-900">0.0</span>
+          </div>
+        </div>
+
+        <!-- Balanced Chessboard Container with Chess.com SVG Arrow Overlay -->
+        <div class="relative flex-1 flex justify-center items-center">
+          <div id="board" class="w-full max-w-[500px] aspect-square rounded shadow-2xl overflow-hidden border border-[#363430]"></div>
+          
+          <!-- SVG Layer for Chess.com Best Move Arrow -->
+          <svg id="arrowOverlay" class="absolute inset-0 pointer-events-none w-full h-full z-20" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
+                <polygon points="0 0, 6 3, 0 6" fill="#81b64c" />
+              </marker>
+            </defs>
+            <g id="arrowsGroup"></g>
+          </svg>
+
+          <!-- Move classification pinned badge on the board -->
+          <div id="badgeOverlay" class="absolute pointer-events-none transition-all duration-150 hidden font-bold text-[11px] px-2 py-0.5 rounded-full shadow-2xl z-20 flex items-center gap-1 border border-white/20"></div>
+        </div>
+      </div>
+
+      <!-- Bottom Player Bar (White) -->
+      <div id="bottomPlayerCard" class="w-full bg-[#262421] border border-[#363430] rounded-b-xl px-3.5 py-2 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-200 border border-slate-300 flex items-center justify-center font-bold text-slate-900">
+            <i class="fa-solid fa-chess-king text-slate-800 text-sm"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 id="bottomPlayerName" class="font-bold text-xs sm:text-sm text-slate-200 truncate max-w-[140px] sm:max-w-xs">White Player</h3>
+              <span id="bottomPlayerRating" class="text-[11px] text-[#989795] font-mono">(1500)</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="bottomPlayerEstRating" class="text-[11px] font-mono font-bold text-amber-300 bg-amber-950/40 border border-amber-800/50 px-2 py-0.5 rounded">Perf: -- ELO</span>
+          <span id="bottomPlayerAccuracy" class="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded">Acc: --%</span>
+        </div>
+      </div>
+
+      <!-- Navigation & Action Controls -->
+      <div class="w-full mt-2.5 bg-[#262421] border border-[#363430] rounded-xl p-2 flex items-center justify-between gap-2 shadow">
+        <div class="flex items-center gap-1">
+          <button id="btnFlip" class="p-2 px-2.5 rounded-lg bg-[#302e2b] hover:bg-[#3d3b37] text-slate-300 hover:text-white transition flex items-center gap-1 text-xs font-semibold" title="Flip Board (F)">
+            <i class="fa-solid fa-retweet"></i>
+            <span class="hidden sm:inline">Flip</span>
+          </button>
+          <button id="btnToggleArrow" class="p-2 px-2.5 rounded-lg bg-[#302e2b] hover:bg-[#3d3b37] text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 text-xs font-semibold" title="Toggle Engine Arrow">
+            <i class="fa-solid fa-location-arrow"></i>
+            <span class="hidden sm:inline">Arrow</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <button id="btnFirst" class="p-2 px-2.5 rounded-lg bg-[#302e2b] hover:bg-[#3d3b37] text-slate-300 hover:text-white transition" title="Start Position (Home)">
+            <i class="fa-solid fa-backward-step"></i>
+          </button>
+          <button id="btnPrev" class="p-2 px-2.5 rounded-lg bg-[#302e2b] hover:bg-[#3d3b37] text-slate-300 hover:text-white transition" title="Previous (Left Arrow)">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <button id="btnAutoPlay" class="p-2 px-4 rounded-lg bg-[#81b64c] hover:bg-[#96c95d] text-white transition font-bold shadow-md shadow-green-900/30" title="Play/Pause (Space)">
+            <i id="playIcon" class="fa-solid fa-play"></i>
+          </button>
+          <button id="btnNext" class="p-2 px-2.5 rounded-lg bg-[#302e2b] hover:bg-[#3d3b37] text-slate-300 hover:text-white transition" title="Next (Right Arrow)">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button id="btnLast" class="p-2 px-2.5 rounded-lg bg-[#302e2b] hover:bg-[#3d3b37] text-slate-300 hover:text-white transition" title="Last Move (End)">
+            <i class="fa-solid fa-forward-step"></i>
+          </button>
+        </div>
+
+        <button id="btnSound" class="p-2 px-2.5 rounded-lg bg-[#302e2b] hover:bg-[#3d3b37] text-slate-300 hover:text-white transition" title="Toggle Sound">
+          <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- Right Section: Dual-Mode Sidebar (Game Review & Live Stockfish Analysis) -->
+    <aside class="w-full lg:w-[410px] xl:w-[440px] flex flex-col gap-2.5 flex-shrink-0">
+      
+      <!-- Mode Tabs (Review vs Live Engine Analysis) -->
+      <div class="bg-[#262421] border border-[#363430] rounded-xl p-1.5 flex gap-1 shadow-sm">
+        <button id="tabReviewMode" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition bg-[#302e2b] text-white flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+          <span>Game Review</span>
+        </button>
+        <button id="tabAnalysisMode" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-microchip text-emerald-400"></i>
+          <span>Stockfish 3400+ Live</span>
+        </button>
+      </div>
+
+      <!-- Live Stockfish Engine Analysis Widget -->
+      <div id="liveAnalysisCard" class="bg-[#262421] border border-[#363430] rounded-xl p-3 shadow-md hidden flex-col gap-2.5">
+        <div class="flex items-center justify-between pb-2 border-b border-[#363430]">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <h3 class="font-bold text-xs text-slate-100">Stockfish 16+ (3400+ ELO)</h3>
+          </div>
+          <span id="liveDepthLabel" class="text-[10px] font-mono bg-[#302e2b] text-slate-300 px-2 py-0.5 rounded">Depth: 18</span>
+        </div>
+
+        <!-- Best Move & Evaluation Display -->
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-[#1b1a17] p-2 rounded-lg border border-[#363430]">
+            <span class="text-[10px] text-[#989795] block">Evaluation</span>
+            <span id="liveEvalValue" class="text-sm font-mono font-bold text-emerald-400">+0.20</span>
+          </div>
+          <div class="bg-[#1b1a17] p-2 rounded-lg border border-[#363430]">
+            <span class="text-[10px] text-[#989795] block">Best Move (Arrow)</span>
+            <span id="liveBestMoveValue" class="text-sm font-mono font-bold text-amber-300">--</span>
+          </div>
+        </div>
+
+        <!-- Engine Continuation -->
+        <div class="bg-[#1b1a17] p-2 rounded-lg border border-[#363430]">
+          <span class="text-[10px] text-[#989795] block mb-1">Engine Best Continuation:</span>
+          <p id="liveEnginePv" class="text-[11px] font-mono text-slate-300 leading-relaxed truncate">Calculating continuation...</p>
+        </div>
+      </div>
+
+      <!-- Match Performance Overview Card (Review Mode) -->
+      <div id="reviewSummaryCard" class="bg-[#262421] border border-[#363430] rounded-xl p-3 shadow-md">
+        <div class="flex items-center justify-between pb-2 border-b border-[#363430] mb-2.5">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="font-bold text-xs sm:text-sm text-slate-100">Review Summary</h2>
+              <span id="gameResultBadge" class="text-[10px] bg-[#302e2b] px-2 py-0.5 rounded text-amber-300 font-mono font-semibold">1-0</span>
+            </div>
+            <p id="gameEventInfo" class="text-[10px] text-[#989795] truncate max-w-[200px]">3400+ Engine Evaluated</p>
+          </div>
+          <div id="engineStatusTag" class="flex items-center gap-1.5 text-[10px] text-emerald-400 bg-emerald-950/50 border border-emerald-900/60 px-2 py-0.5 rounded-full font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="engineStatusLabel">Stockfish 3400+ Ready</span>
+          </div>
+        </div>
+
+        <!-- Accuracy & Estimated Rating Breakdown -->
+        <div class="grid grid-cols-2 gap-2">
+          
+          <!-- White Player Stats -->
+          <div class="bg-[#1b1a17] p-2 rounded-lg border border-[#363430]">
+            <div class="flex justify-between items-center text-[11px] mb-1">
+              <span class="font-semibold text-slate-300 flex items-center gap-1 truncate max-w-[75px]">
+                <span class="w-2 h-2 rounded-full bg-white flex-shrink-0"></span>
+                <span id="summaryWhiteName">White</span>
+              </span>
+              <span id="summaryWhiteAcc" class="font-mono font-bold text-emerald-400">--%</span>
+            </div>
+            <div class="w-full bg-[#302e2b] h-1.5 rounded-full overflow-hidden mb-1.5">
+              <div id="barWhiteAcc" class="bg-[#81b64c] h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-[#989795] font-mono">
+              <span>Rating:</span>
+              <span id="summaryWhiteElo" class="text-amber-300 font-bold">-- ELO</span>
+            </div>
+            <div class="flex justify-between text-[10px] text-[#989795] font-mono">
+              <span>Avg CPL:</span>
+              <span id="summaryWhiteAcpl" class="text-slate-300">--</span>
+            </div>
+          </div>
+
+          <!-- Black Player Stats -->
+          <div class="bg-[#1b1a17] p-2 rounded-lg border border-[#363430]">
+            <div class="flex justify-between items-center text-[11px] mb-1">
+              <span class="font-semibold text-slate-300 flex items-center gap-1 truncate max-w-[75px]">
+                <span class="w-2 h-2 rounded-full bg-[#161512] border border-slate-600 flex-shrink-0"></span>
+                <span id="summaryBlackName">Black</span>
+              </span>
+              <span id="summaryBlackAcc" class="font-mono font-bold text-emerald-400">--%</span>
+            </div>
+            <div class="w-full bg-[#302e2b] h-1.5 rounded-full overflow-hidden mb-1.5">
+              <div id="barBlackAcc" class="bg-[#81b64c] h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-[#989795] font-mono">
+              <span>Rating:</span>
+              <span id="summaryBlackElo" class="text-amber-300 font-bold">-- ELO</span>
+            </div>
+            <div class="flex justify-between text-[10px] text-[#989795] font-mono">
+              <span>Avg CPL:</span>
+              <span id="summaryBlackAcpl" class="text-slate-300">--</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Move Breakdown Badges Legend -->
+      <div class="grid grid-cols-4 gap-1 text-center text-[9px] font-medium">
+        <div class="bg-teal-950/60 border border-teal-800/60 p-1 rounded text-teal-300 font-mono">
+          <span class="font-bold text-[11px] block">!!</span> Brilliant
+        </div>
+        <div class="bg-cyan-950/60 border border-cyan-800/60 p-1 rounded text-cyan-300 font-mono">
+          <span class="font-bold text-[11px] block">!</span> Great
+        </div>
+        <div class="bg-emerald-950/60 border border-emerald-800/60 p-1 rounded text-emerald-300 font-mono">
+          <span class="font-bold text-[11px] block">★</span> Best
+        </div>
+        <div class="bg-lime-950/60 border border-lime-800/60 p-1 rounded text-lime-300 font-mono">
+          <span class="font-bold text-[11px] block">✓</span> Excellent
+        </div>
+        <div class="bg-yellow-950/60 border border-yellow-800/60 p-1 rounded text-yellow-300 font-mono">
+          <span class="font-bold text-[11px] block">?!</span> Inaccuracy
+        </div>
+        <div class="bg-orange-950/60 border border-orange-800/60 p-1 rounded text-orange-300 font-mono">
+          <span class="font-bold text-[11px] block">?</span> Mistake
+        </div>
+        <div class="bg-rose-950/60 border border-rose-800/60 p-1 rounded text-rose-400 font-mono">
+          <span class="font-bold text-[11px] block">??</span> Blunder
+        </div>
+        <div class="bg-[#302e2b] border border-slate-700/60 p-1 rounded text-slate-300 font-mono">
+          <span class="font-bold text-[11px] block">•</span> Book
+        </div>
+      </div>
+
+      <!-- Compact Move Notation Table -->
+      <div class="bg-[#262421] border border-[#363430] rounded-xl flex-1 flex flex-col overflow-hidden min-h-[350px] max-h-[460px]">
+        <div class="bg-[#21201d] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 grid grid-cols-12 border-b border-[#363430]">
+          <div class="col-span-2">#</div>
+          <div class="col-span-5">White</div>
+          <div class="col-span-5">Black</div>
+        </div>
+
+        <!-- Scrollable Move List -->
+        <div id="moveList" class="flex-1 overflow-y-auto divide-y divide-[#363430]/60 p-1 text-xs font-mono">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Chess.com Public API Modal -->
+  <div id="chessComModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#262421] border border-[#363430] w-full max-w-lg rounded-2xl p-5 shadow-2xl flex flex-col gap-3.5">
+      <div class="flex items-center justify-between pb-2 border-b border-[#363430]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-[#81b64c] flex items-center justify-center text-white font-bold text-sm">
+            <i class="fa-solid fa-chess-pawn"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm sm:text-base text-white">Import from Chess.com</h3>
+            <p class="text-[11px] text-[#989795]">Fetch matches & review with Stockfish 3400+</p>
+          </div>
+        </div>
+        <button id="closeChessComModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Search Input -->
+      <div class="flex gap-2">
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 text-xs">
+            <i class="fa-solid fa-user"></i>
+          </span>
+          <input id="chessComUsernameInput" type="text" placeholder="Enter Chess.com Username (e.g. Hikaru)" 
+            class="w-full bg-[#1b1a17] border border-[#363430] rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#81b64c] transition" />
+        </div>
+        <button id="fetchChessComGamesBtn" class="bg-[#81b64c] hover:bg-[#96c95d] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow">
+          <span id="fetchBtnSpinner" class="hidden"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+          <span>Find Games</span>
+        </button>
+      </div>
+
+      <!-- Quick sample accounts -->
+      <div class="flex items-center gap-2 text-[11px] text-slate-400">
+        <span>Try:</span>
+        <button class="quick-user-btn text-[#81b64c] hover:underline" data-username="hikaru">Hikaru</button>
+        <span>•</span>
+        <button class="quick-user-btn text-[#81b64c] hover:underline" data-username="magnuscarlsen">Magnus</button>
+        <span>•</span>
+        <button class="quick-user-btn text-[#81b64c] hover:underline" data-username="gothamchess">GothamChess</button>
+      </div>
+
+      <!-- Status / Feedback Message -->
+      <div id="chessComStatusMsg" class="hidden text-xs p-2.5 rounded-lg border"></div>
+
+      <!-- Games List Container -->
+      <div id="chessComGamesList" class="max-h-64 overflow-y-auto divide-y divide-[#363430]/70 border border-[#363430] rounded-xl bg-[#1b1a17] hidden">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- PGN Paste Import Modal -->
+  <div id="pgnModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#262421] border border-[#363430] w-full max-w-xl rounded-2xl p-5 shadow-2xl flex flex-col gap-3.5">
+      <div class="flex items-center justify-between pb-2 border-b border-[#363430]">
+        <h3 class="font-bold text-sm sm:text-base text-white flex items-center gap-2">
+          <i class="fa-solid fa-file-lines text-[#81b64c]"></i> Paste Custom PGN
+        </h3>
+        <button id="closePgnModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <textarea id="pgnInput" rows="7" placeholder="Paste PGN text here..." class="w-full bg-[#1b1a17] border border-[#363430] rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#81b64c] transition resize-none"></textarea>
+
+      <!-- Preset sample games -->
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-slate-400">Sample Classics:</span>
+        <button id="sampleOperaGame" class="text-[#81b64c] hover:underline">Morphy's Opera</button>
+        <span class="text-slate-600">•</span>
+        <button id="sampleImmortal" class="text-[#81b64c] hover:underline">Kasparov's Immortal</button>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button id="cancelPgnBtn" class="px-4 py-2 rounded-lg text-xs text-slate-300 hover:bg-[#302e2b] transition">Cancel</button>
+        <button id="loadPgnBtn" class="px-5 py-2 rounded-lg text-xs font-bold bg-[#81b64c] hover:bg-[#96c95d] text-white shadow transition">Review with Engine</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Required JS Libraries -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+  
+  <!-- Main Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>
